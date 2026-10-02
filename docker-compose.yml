@@ -45,7 +45,7 @@ services:
       context: ./api
       target: ${API_TARGET:-default}
     restart: unless-stopped
-    # Rigquiro: the API runs as the image's a uid that exists neither in the image nor on the host (10001); ./data is chowned to it.
+    # Rigquiro: the API runs as a uid that exists neither in the image nor on the host (10001); ./data is chowned to it.
     user: "10001:10001"
     env_file: .env
     environment:

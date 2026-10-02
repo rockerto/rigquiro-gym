@@ -86,9 +86,17 @@ export const SearchField = forwardRef(function SearchField({ value, onChange, on
 
 /* ============================ switch ============================ */
 
-export function Switch({ checked, onChange, disabled }) {
+export function Switch({ checked, onChange, disabled, label }) {
+  // Rigquiro: a switch needs an accessible name; without an explicit label, borrow its row's text.
+  const ref = useRef(null)
+  useEffect(() => {
+    const el = ref.current
+    if (el && !label) el.setAttribute('aria-label', (el.closest('.lrow')?.textContent || '').trim().slice(0, 80) || 'Interruptor')
+  }, [label])
   return (
     <button
+      ref={ref}
+      aria-label={label}
       role="switch"
       aria-checked={!!checked}
       disabled={disabled}

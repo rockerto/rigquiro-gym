@@ -28,7 +28,7 @@
   /* text */
   --label:     #f5f5f5;
   --label-2:   rgba(235,235,245,.60);
-  --label-3:   rgba(235,235,245,.32);
+  --label-3:   rgba(235,235,245,.58);
   --label-4:   rgba(235,235,245,.18);
 
   /* lines */
@@ -70,7 +70,7 @@
 
   --label:     #000000;
   --label-2:   rgba(60,60,67,.60);
-  --label-3:   rgba(60,60,67,.30);
+  --label-3:   rgba(60,60,67,.66);
   --label-4:   rgba(60,60,67,.16);
 
   --sep:       rgba(60,60,67,.29);
@@ -322,6 +322,9 @@ h4.sec{
 .btn:active{transform:scale(.975)}
 .btn.primary{background:var(--acc);color:var(--on-acc)}
 .btn.primary:active{background:var(--acc-2)}
+/* Rigquiro: white on #1693d3 is 3.4:1; buttons use a deeper sky (5.4:1), the brand blue stays elsewhere */
+:root[data-accent="sky"] .btn.primary{background:#0e6fa3}
+:root[data-accent="sky"] .btn.primary:active{background:#0a5680}
 .btn.tinted{background:var(--acc-soft);color:var(--acc)}
 .btn.danger{background:color-mix(in srgb,var(--red) 15%,transparent);color:var(--red)}
 .btn.ghost,.btn.plain{background:none;color:var(--acc);font-weight:400}
