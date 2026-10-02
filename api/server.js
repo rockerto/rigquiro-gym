@@ -34,6 +34,24 @@ const INVITE_ONLY = /^(1|true|yes|on)$/i.test(process.env.INVITE_ONLY || '');
 // out of is still the wrong front door (#42). Default ON, so existing instances are unchanged;
 // the polarity is inverted from INVITE_ONLY because the safe default here is the permissive one.
 const ALLOW_GUEST = !/^(0|false|no|off)$/i.test(process.env.ALLOW_GUEST || '');
+// Rigquiro: token for server-to-server invite creation (Rigbot). Empty = the route is disabled.
+const SERVICE_TOKEN = process.env.GYM_SERVICE_TOKEN || '';
+const SERVICE_INVITE_DAYS = 14;
+const inviteValid = i => !i.usedBy && !i.revoked && !(i.expires && Date.parse(i.expires) < Date.now());
+
+// Rigquiro: fixed-window rate limit per client IP. Caddy overwrites X-Forwarded-For, so its first
+// entry is the real client; in-memory is enough for a single process.
+const RATE = new Map();
+function rateLimited(req, bucket, max, windowMs) {
+  const ip = String(req.headers['x-forwarded-for'] || '').split(',')[0].trim()
+    || String(req.socket?.remoteAddress || '').replace(/^::ffff:/, '');
+  const k = bucket + '|' + ip, now = Date.now();
+  let e = RATE.get(k);
+  if (!e || now - e.t > windowMs) { e = { t: now, n: 0 }; RATE.set(k, e); }
+  e.n++;
+  if (RATE.size > 5000) for (const [kk, v] of RATE) if (now - v.t > windowMs) RATE.delete(kk);
+  return e.n > max;
+}
 // 90 days keeps someone who trains a few times a week permanently signed in without a stolen
 // cookie staying good for a year. Overridable because a family instance and one on the open
 // internet don't want the same number. Only affects cookies minted from now on — the expiry is
@@ -704,7 +722,7 @@ const routes = {
     const name = text(body.name).trim().slice(0, 40);
     if (!name) return json(res, 400, { error: 'name required' });
     const code = text(body.code).trim().toUpperCase();
-    if (INVITE_ONLY && !db.invites.some(i => i.code === code && !i.usedBy && !i.revoked)) {
+    if (INVITE_ONLY && !db.invites.some(i => i.code === code && inviteValid(i))) {
       // The rejected code itself is never recorded — a near-miss guess in the log is a liability.
       audit(req, 'auth.register.denied', { ok: false, name, msg: 'invite-rejected' });
       return json(res, 403, { error: 'a valid invite code is required' });
@@ -754,7 +772,7 @@ const routes = {
     // Re-check the invite at the last moment (it may have been used/revoked since options), then burn it.
     let invite = null;
     if (INVITE_ONLY) {
-      invite = db.invites.find(i => i.code === c.code && !i.usedBy && !i.revoked);
+      invite = db.invites.find(i => i.code === c.code && inviteValid(i));
       if (!invite) {
         audit(req, 'auth.register.fail', { ok: false, name: c.name, msg: 'invite-invalid' });
         return json(res, 403, { error: 'invite code is no longer valid — ask for a new one' });
@@ -1143,6 +1161,27 @@ const routes = {
     json(res, 200, { invite });
   },
 
+  // Rigquiro: Rigbot asks for a single-use invite for a patient. `ref` is an opaque reference
+  // (no name, phone or RUT) so the invite list never holds patient identity.
+  'POST /api/service/invites/new': async (req, res) => {
+    const got = Buffer.from((req.headers.authorization || '').replace(/^Bearer\s+/, ''));
+    const want = Buffer.from(SERVICE_TOKEN);
+    if (!SERVICE_TOKEN || got.length !== want.length || !crypto.timingSafeEqual(got, want)) {
+      audit(req, 'service.invite.denied', { ok: false });
+      return json(res, 401, { error: 'unauthorized' });
+    }
+    const body = await readBody(req);
+    const ref = text(body.ref).replace(/[^\w.:-]/g, '').slice(0, 40);
+    let code;
+    do { code = crypto.randomBytes(8).toString('hex').toUpperCase(); } while (db.invites.some(i => i.code === code));
+    const expires = new Date(Date.now() + SERVICE_INVITE_DAYS * 864e5).toISOString();
+    const invite = { code, note: ('rigbot ' + ref).trim(), createdBy: 'rigbot', created: new Date().toISOString(), expires };
+    db.invites.push(invite);
+    saveDb();
+    audit(req, 'service.invite.create', { msg: code });
+    json(res, 200, { code, link: ORIGIN + '/?invite=' + code, expires });
+  },
+
   'POST /api/admin/invites/revoke': async (req, res) => {
     const admin = requireAdmin(req, res); if (!admin) return;
     const body = await readBody(req);
@@ -1239,6 +1278,10 @@ http.createServer(async (req, res) => {
   const key = req.method + ' ' + url.pathname;
   const handler = routes[key];
   if (!handler) return json(res, 404, { error: 'not found' });
+  if (/^POST \/api\/(register|login|pair)\b/.test(key) && rateLimited(req, 'auth', 20, 10 * 60e3))
+    return json(res, 429, { error: 'Demasiados intentos. Espera unos minutos y vuelve a intentarlo.' });
+  if (key === 'POST /api/service/invites/new' && rateLimited(req, 'service', 120, 60 * 60e3))
+    return json(res, 429, { error: 'too many requests' });
   if (!csrfOk(req, key)) {
     // Logged, not audited: this is reachable without a session, and an audit entry per attempt
     // would let anyone fill the log. An operator who has genuinely mis-set ORIGIN needs to see

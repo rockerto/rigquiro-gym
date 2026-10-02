@@ -10,11 +10,11 @@ import Icon from '../components/Icon.jsx'
 import { Button } from '../components/ui.jsx'
 import { askAddDeviceData } from '../sheets.jsx'
 
-function RegisterSheet({ close }) {
+function RegisterSheet({ close, initialCode = '' }) {
   const { setUser, pushState, pullState, loadConfig } = useStore()
   const config = useStore(s => s.config)
   const [name, setName] = useState('')
-  const [code, setCode] = useState('')
+  const [code, setCode] = useState(initialCode)
   const [consent, setConsent] = useState(false)
   const inviteOnly = !!config?.invite_only
   const ref = useRef(null)
@@ -57,6 +57,13 @@ export default function Login() {
   const { setUser, adoptProfile, setGuest } = useStore()
   const config = useStore(s => s.config)
   const canGuest = guestAllowed(config)
+  // Rigquiro: the link Rigbot sends (/?invite=CODE) opens registration with the code filled in.
+  useEffect(() => {
+    const c = new URLSearchParams(window.location.search).get('invite')
+    if (!c) return
+    window.history.replaceState(null, '', window.location.pathname + window.location.hash)
+    useUI.getState().openSheet(close => <RegisterSheet close={close} initialCode={c.toUpperCase()} />)
+  }, [])
   const signIn = async () => {
     try { const u = await passkeyLogin(); setUser(u); await adoptProfile(askAddDeviceData); useUI.getState().toast(t('Welcome back, {0}', u.name)) }
     catch (e) { if (e.name !== 'NotAllowedError' && e.name !== 'AbortError') useUI.getState().toast(e.message || t('Sign-in failed')) }
