@@ -1490,3 +1490,6 @@ body.chips-dragging *{cursor:inherit}
 .coach-cta-t b{font-size:17px;font-weight:600;letter-spacing:-.015em;color:var(--label)}
 .coach-cta-t span{font-size:13px;color:var(--label-2);line-height:1.35}
 .coach-cta-chev{color:var(--acc);font-size:15px;flex:none}
+
+/* Rigquiro: links inside muted text need more than color to stand out */
+.dim a,.muted a{text-decoration:underline}
