@@ -7,8 +7,11 @@
 
 import { MOBILE } from './mobile.js'
 
-const GITLAB_PROJECT_ID = 'DuarteSantos8%2Fopengym'
-const RELEASES_URL = `https://gitlab.com/api/v4/projects/${GITLAB_PROJECT_ID}/releases`
+// Rigquiro: updates come from our own server, never from openGym's releases (different app id
+// and signing key — an openGym APK cannot install over this app). Bump RIG_APP_VERSION together
+// with versionName in android/app/build.gradle and publish app/latest.json beside the APK.
+export const RIG_APP_VERSION = '1.0.0'
+const LATEST_URL = 'https://gym.rigdigital.cl/app/latest.json'
 
 /**
  * Compares two semver strings (e.g. "1.2.11" vs "1.3.0").
@@ -42,27 +45,13 @@ export async function checkForUpdate() {
   return cached
 }
 async function fetchLatest() {
-  const res = await fetch(RELEASES_URL + '?per_page=1')
-  if (!res.ok) throw new Error(`GitLab API ${res.status}`)
-  const releases = await res.json()
-  if (!releases.length) return { hasUpdate: false, latestVersion: __APP_VERSION__, apkUrl: null, hashUrl: null }
-
-  const latest = releases[0]
-  const latestVersion = latest.tag_name.replace(/^v/, '')
-  const hasUpdate = compareSemver(latestVersion, __APP_VERSION__) > 0
-
-  // Find the APK asset among the release links (generic package links) or assets.sources
-  let apkUrl = null
-  let hashUrl = null
-  if (latest.assets?.links?.length) {
-    const apkLink = latest.assets.links.find(l => /\.apk$/i.test(l.url) || /\.apk$/i.test(l.direct_asset_url))
-    if (apkLink) apkUrl = apkLink.direct_asset_url || apkLink.url
-    // Look for a matching .sha256 hash file
-    const hashLink = latest.assets.links.find(l => /\.apk\.sha256$/i.test(l.url) || /\.apk\.sha256$/i.test(l.direct_asset_url) || /sha256/i.test(l.name))
-    if (hashLink) hashUrl = hashLink.direct_asset_url || hashLink.url
-  }
-
-  return { hasUpdate, latestVersion, apkUrl, hashUrl }
+  const res = await fetch(LATEST_URL, { cache: 'no-cache' })
+  if (!res.ok) throw new Error(`Update check ${res.status}`)
+  const latest = await res.json()
+  const latestVersion = String(latest.version || '').replace(/^v/, '')
+  const hasUpdate = !!latestVersion && compareSemver(latestVersion, RIG_APP_VERSION) > 0
+  const apkUrl = latest.apk || null
+  return { hasUpdate, latestVersion: latestVersion || RIG_APP_VERSION, apkUrl, hashUrl: apkUrl ? apkUrl + '.sha256' : null }
 }
 
 /**
@@ -86,7 +75,7 @@ export async function sha256(buffer) {
 export async function downloadAndInstall(url, expectedHash = null, onProgress = null) {
   if (!MOBILE) {
     // On web, just open the release page
-    window.open('https://gitlab.com/DuarteSantos8/opengym/-/releases', '_blank', 'noopener')
+    window.open('https://gym.rigdigital.cl/app/', '_blank', 'noopener')
     return
   }
 
@@ -134,7 +123,7 @@ export async function downloadAndInstall(url, expectedHash = null, onProgress = 
     reader.readAsDataURL(blob)
   })
 
-  const fileName = 'opengym-update.apk'
+  const fileName = 'rigquiro-update.apk'
   await Filesystem.writeFile({
     path: fileName,
     directory: Directory.Cache,

@@ -5,13 +5,12 @@ import { useState, useRef, useEffect } from 'react'
 import { useStore } from '../store/useStore.js'
 import { useUI } from '../store/useUI.js'
 import { t } from '../lib/i18n.js'
-import Icon from '../components/Icon.jsx'
 import { Button } from '../components/ui.jsx'
 import { askAddDeviceData } from '../sheets.jsx'
 
 export function ConnectSheet({ close }) {
   const { connectToServer } = useStore()
-  const [url, setUrl] = useState('')
+  const [url, setUrl] = useState('gym.rigdigital.cl')
   const [code, setCode] = useState('')
   const [busy, setBusy] = useState(false)
   const ref = useRef(null)
@@ -24,9 +23,9 @@ export function ConnectSheet({ close }) {
     finally { setBusy(false) }
   }
   return <>
-    <h3>{t('Connect to my server')}</h3>
+    <h3>Conectar con mi cuenta</h3>
     <div className="muted small" style={{ marginBottom: 14 }}>
-      {t('Open Settings → “Pair the mobile app” on the Rigquiro site you’re already signed into, then enter its address and the code shown there.')}
+      En gym.rigdigital.cl, con tu sesión iniciada, abre Ajustes → «Emparejar la app móvil» y escribe aquí el código que aparece. Dura 5 minutos.
     </div>
     <input ref={ref} className="input" placeholder={t('Server address (e.g. gym.example.com)')} value={url}
       onChange={e => setUrl(e.target.value)} autoCapitalize="none" autoCorrect="off" inputMode="url" />
@@ -41,19 +40,18 @@ export function ConnectSheet({ close }) {
 export default function MobileOnboarding() {
   const { chooseLocalMode } = useStore()
   const head = <>
-    <div style={{ fontSize: 54, display: 'flex', justifyContent: 'center', color: 'var(--acc)' }}><Icon name="dumbbell" /></div>
-    <h1 style={{ fontSize: 34, fontWeight: 700, letterSpacing: '-.028em', margin: '10px 0 4px' }}>Rigquiro</h1>
+    <div style={{ display: 'flex', justifyContent: 'center', margin: '8px 0 6px' }}><img src="rigquiro-logo.png" alt="Rigquiro" style={{ width: 'min(290px, 76%)', height: 'auto' }} /></div>
   </>
   const wrap = { display: 'flex', flexDirection: 'column', justifyContent: 'center', minHeight: '78vh', textAlign: 'center' }
   return (
     <div className="narrow" style={wrap}>
       {head}
-      <div className="muted" style={{ marginBottom: 34 }}>{t('How do you want to use Rigquiro?')}</div>
-      <Button variant="primary" icon="lock" onClick={() => chooseLocalMode()}>{t('Use on this device')}</Button>
+      <div className="muted" style={{ marginBottom: 34 }}>¿Cómo quieres usar Rigquiro?</div>
+      <Button variant="primary" icon="rocket" onClick={() => useUI.getState().openSheet(close => <ConnectSheet close={close} />)}>Conectar con mi cuenta</Button>
       <div style={{ height: 10 }} />
-      <Button icon="rocket" onClick={() => useUI.getState().openSheet(close => <ConnectSheet close={close} />)}>{t('Connect to my server')}</Button>
+      <Button icon="lock" onClick={() => chooseLocalMode()}>{t('Use on this device')}</Button>
       <div className="dim small" style={{ marginTop: 26, lineHeight: 1.5 }}>
-        {t('Local keeps everything on this phone. Connecting syncs to your own Rigquiro server instead — you can switch later in Settings.')}
+        Si eres paciente de RIG Quiropráctico, elige «Conectar con mi cuenta» para guardar tu progreso. «Usar en este dispositivo» guarda todo solo en este teléfono.
       </div>
     </div>
   )

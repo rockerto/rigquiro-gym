@@ -1,8 +1,8 @@
 {
-  "appId": "ch.duartesantos.opengym",
-  "appName": "openGym",
+  "appId": "cl.rigquiro.gym",
+  "appName": "Rigquiro",
   "webDir": "dist",
-  "backgroundColor": "#0c0e12",
+  "backgroundColor": "#0d0d0d",
   "android": {
     "allowMixedContent": false
   }

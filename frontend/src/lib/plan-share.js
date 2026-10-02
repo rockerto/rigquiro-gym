@@ -412,7 +412,7 @@ export function planPrintHTML(S, owner) {
   ${weekHTML(S)}
   <h3 class="block">${esc(t('Routines'))}</h3>
   ${body}
-  <footer>${esc(t('Made with openGym'))} · opengym.duarte-santos.ch</footer>
+  <footer>Hecho con Rigquiro · RIG Quiropráctico</footer>
 </div></body></html>`
 }
 
