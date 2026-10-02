@@ -433,7 +433,7 @@ export default function Settings() {
         are running, or whether an update actually installed. */}
     <div className="dim small" style={{ textAlign: 'center', marginTop: 4, lineHeight: 1.6 }}>
       Rigquiro · basado en openGym v{__APP_VERSION__} · {t('free & open source (AGPL v3)')}<br />
-      <a href="https://github.com/rockerto/rigquiro-gym" target="_blank" rel="noopener">código fuente de esta versión</a> · <a href="https://github.com/DuarteSantos8/openGym" target="_blank" rel="noopener">openGym original</a> · exercise data: hasaneyldrm/exercises-dataset (MIT)<br />
+      <a href="/privacidad.html" target="_blank" rel="noopener">Política de privacidad</a> · <a href="https://github.com/rockerto/rigquiro-gym" target="_blank" rel="noopener">código fuente de esta versión</a> · <a href="https://github.com/DuarteSantos8/openGym" target="_blank" rel="noopener">openGym original</a> · exercise data: hasaneyldrm/exercises-dataset (MIT)<br />
       exercise images and animations © <a href="https://gymvisual.com/" target="_blank" rel="noopener">Gym visual</a>
     </div>
   </div>

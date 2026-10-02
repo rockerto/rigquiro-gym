@@ -15,6 +15,7 @@ function RegisterSheet({ close }) {
   const config = useStore(s => s.config)
   const [name, setName] = useState('')
   const [code, setCode] = useState('')
+  const [consent, setConsent] = useState(false)
   const inviteOnly = !!config?.invite_only
   const ref = useRef(null)
   useEffect(() => { setTimeout(() => ref.current?.focus(), 250) }, [])
@@ -25,6 +26,7 @@ function RegisterSheet({ close }) {
     const n = name.trim()
     if (!n) { useUI.getState().toast(t('Enter a name')); return }
     if (inviteOnly && !code.trim()) { useUI.getState().toast(t('An invite code is required')); return }
+    if (!consent) { useUI.getState().toast('Para crear tu perfil debes aceptar el tratamiento de tus datos'); return }
     try {
       const u = await passkeyRegister(n, code.trim())
       setUser(u); close()
@@ -42,6 +44,10 @@ function RegisterSheet({ close }) {
         onChange={e => setCode(e.target.value.toUpperCase())} style={{ letterSpacing: '.14em', fontWeight: 600, textAlign: 'center' }} />
       <div className="dim small" style={{ marginTop: 6 }}>{t('This app is invite-only — enter the code you were given.')}</div>
     </>}
+    <label className="small" style={{ display: 'flex', gap: 10, alignItems: 'flex-start', marginTop: 14, textAlign: 'left', lineHeight: 1.45 }}>
+      <input type="checkbox" checked={consent} onChange={e => setConsent(e.target.checked)} style={{ marginTop: 3, width: 20, height: 20, flex: 'none' }} />
+      <span>Acepto que RIGQUIROPRACTICO SPA trate mis datos personales y <strong>mis datos de salud</strong> (rutinas, ejercicios, pesos y peso corporal) para el funcionamiento de la app, y que mi profesional tratante vea mi historial de entrenamiento, según la <a href="/privacidad.html" target="_blank" rel="noopener">Política de privacidad</a>. Puedo retirar este consentimiento escribiendo a rig@rigquiropractico.cl.</span>
+    </label>
     <div style={{ height: 12 }} />
     <Button variant="primary" onClick={go}>{t('Create passkey')}</Button>
   </>
