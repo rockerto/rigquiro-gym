@@ -62,9 +62,19 @@ export default function Home() {
 
   return <div className="narrow">
     <div className="hdr">
-      <div><h1>{user ? t('Hi {0}', user.name) : 'openGym'}</h1><div className="sub">{today.toLocaleDateString(dateLocale(), { weekday: 'long', day: 'numeric', month: 'long' })}</div></div>
+      <div><h1>{user ? t('Hi {0}', user.name) : 'Rigquiro'}</h1><div className="sub">{today.toLocaleDateString(dateLocale(), { weekday: 'long', day: 'numeric', month: 'long' })}</div></div>
       <button className="iconbtn" onClick={() => nav('/settings')} aria-label={t('Settings')}><Icon name="gear" /></button>
     </div>
+
+    <button onClick={() => nav("/facil")} style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 12, padding: "20px", margin: "2px 0 16px", borderRadius: 20, border: 0, cursor: "pointer", background: "linear-gradient(135deg, var(--acc), var(--acc-2, #0e6fa3))", color: "var(--on-acc, #fff)", fontWeight: 700, fontSize: 19, boxShadow: "0 14px 30px -14px var(--acc)" }}>
+      <Icon name="bolt" size={22} /> Rutina fácil
+    </button>
+
+    <button onClick={() => nav("/rehab")} style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, padding: "16px 18px", margin: "0 0 16px", borderRadius: 18, border: "1px solid var(--sep-op)", cursor: "pointer", background: "var(--surface)", color: "var(--label)", fontWeight: 600, fontSize: 16 }}>
+      <span style={{ color: "var(--acc)", display: "flex" }}><Icon name="stretch" size={22} /></span>
+      <span style={{ flex: 1, textAlign: "left" }}>Rehabilitación</span>
+      <Icon name="chevronRight" size={18} />
+    </button>
 
     <div className="card">
       <div className="row between" style={{ marginBottom: 8 }}>
