@@ -134,3 +134,33 @@ output), `api`, `web` (multi-stage build of `frontend/` served by nginx, which a
 - Don't commit `media/` or `data/` (gitignored).
 - Training-logic changes (progression, 1RM, session read-back) need a unit test in `src/lib`
   beside the code, not just manual clicking-through.
+
+## Rigquiro: desplegar (servidor + teléfono)
+
+Producción es gym.rigdigital.cl en Oracle (`ssh oracle`, `~/opengym`, contenedores `opengym-{api,web}-1`,
+imágenes `rigquiro-gym-{api,web}:local`). **El APK de Android trae el código web adentro: desplegar el
+servidor NO cambia lo que corre el teléfono.** Un arreglo de la app llega al teléfono solo por el canal
+`gym.rigdigital.cl/app/web/` (APK 1.0.2 en adelante, `src/lib/live-update.js`) o con un APK nuevo.
+El 20-oct-2026 se dio por verificado un arreglo que estaba en el servidor mientras el teléfono seguía
+con el código viejo; no repetirlo. Ajustes → al final dice "Código de la app: <id>" de lo que corre.
+
+1. Tests: `frontend` vitest en Node 22 (el de CI/Docker) y `api` `node --test test/*.test.js`;
+   comparar contra las fallas que ya había, no contra cero.
+2. e2e contra una copia local de producción: `colima start`, imágenes construidas con
+   `docker buildx build --load -f web/Dockerfile -t rigquiro-gym-web:cand .` y
+   `docker build --target default -t rigquiro-gym-api:cand ./api`, luego en `e2e/`:
+   `E2E_WEB_IMAGE=… E2E_API_IMAGE=… docker compose up -d` y `npx playwright test`
+   (passkey virtual de Chromium; `ROBERTO_STATE`/`E2E_PLAN` apuntan a archivos privados fuera del repo).
+3. Servidor: respaldar `data/state-*.json` y etiquetar las imágenes vivas como `:prev-<fecha>`;
+   llevar las MISMAS imágenes probadas (`docker save … | ssh oracle docker load`), `git merge --ff-only`
+   en `~/opengym` y `docker compose up -d api web`. Volver atrás: re-etiquetar `:prev-<fecha>` como
+   `:local` y `docker compose up -d api web`.
+4. Teléfono: `cd frontend && node scripts/rig-mobile-bundle.mjs && scripts/rig-publish-mobile-web.sh`
+   (archivos primero, `latest.json` al final; `--rollback` vuelve al anterior). Probarlo antes en el
+   emulador (AVD `cubos`): un bundle que no arranca se ve en blanco UNA vez y al reabrir vuelve al anterior.
+5. APK nuevo solo si cambia lo nativo (Capacitor, plugins, Java) o `MIN_NATIVE`: subir versionCode/
+   versionName en `android/app/build.gradle` y `RIG_APP_VERSION` en `src/lib/update.js`,
+   `node scripts/rig-mobile-bundle.mjs --sync`, `./gradlew assembleRelease` (JAVA_HOME=openjdk@21),
+   zipalign + apksigner con `~/.android-keys/rigquiro-gym/release.keystore` (alias `rigquiro`, clave en
+   el llavero `android-keystore-rigquiro-gym`), y publicar APK + `.sha256` + `app/latest.json`. El
+   teléfono lo ofrece en Inicio.

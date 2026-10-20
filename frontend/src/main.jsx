@@ -2,6 +2,7 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import App from './App.jsx'
 import { MOBILE, onAppActive } from './lib/mobile.js'
+import { useStore } from './store/useStore.js'
 import './index.css'
 
 // App.jsx restores per-route scroll itself; the browser's own attempt races it.
@@ -23,8 +24,9 @@ if (MOBILE) {
   setTimeout(() => {
     import('./lib/live-update.js').then(({ confirmLiveBundle, checkLiveUpdate }) => {
       if (!document.getElementById('root')?.childElementCount) return
-      confirmLiveBundle().then(() => checkLiveUpdate({ force: true }))
-      onAppActive(() => checkLiveUpdate())
+      const canSwitch = () => !useStore.getState().S.active
+      confirmLiveBundle().then(() => checkLiveUpdate({ force: true, canSwitch }))
+      onAppActive(() => checkLiveUpdate({ canSwitch }))
     }).catch(() => {})
   }, 1500)
 }

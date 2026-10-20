@@ -36,10 +36,10 @@ export function compareVersions(a, b) {
  * confirmed it booted — a broken bundle is not retried), 'invalid' or 'apply'.
  */
 export function liveDecision(manifest, { bundleId, nativeVersion, tried }) {
-  if (!manifest || typeof manifest.id !== 'string' || !/^[\w.-]{1,80}$/.test(manifest.id)) return 'invalid'
+  if (!manifest || typeof manifest.id !== 'string' || !/^\w[\w.-]{0,79}$/.test(manifest.id)) return 'invalid'
   const files = manifest.files
   if (!Array.isArray(files) || !files.some(f => f && f.p === 'index.html')) return 'invalid'
-  if (!files.every(f => f && typeof f.p === 'string' && /^[\w./-]+$/.test(f.p) && !f.p.includes('..') && /^[0-9a-f]{64}$/.test(f.h))) return 'invalid'
+  if (!files.every(f => f && typeof f.p === 'string' && /^\w[\w./-]*$/.test(f.p) && !f.p.includes('..') && /^[0-9a-f]{64}$/.test(f.h))) return 'invalid'
   if (manifest.id === bundleId) return 'current'
   if (manifest.minNative && compareVersions(nativeVersion, manifest.minNative) < 0) return 'needs-apk'
   if (tried && tried.id === manifest.id) return 'tried'
@@ -99,9 +99,9 @@ let running = null
 /**
  * Fetch the published manifest and, when it is newer web code this shell can run, download it
  * (reusing every file the running bundle already has with the same hash) and switch to it —
- * the WebView reloads into the new code right away. Returns the decision taken.
+ * the WebView reloads into the new code right away, unless `canSwitch()` says not now.
  */
-export function checkLiveUpdate({ force = false } = {}) {
+export function checkLiveUpdate({ force = false, canSwitch = () => true } = {}) {
   if (!MOBILE) return Promise.resolve('off')
   if (running) return running
   if (!force && Date.now() - lastCheck < MIN_GAP_MS) return Promise.resolve('throttled')
@@ -115,6 +115,9 @@ export function checkLiveUpdate({ force = false } = {}) {
     const { version: nativeVersion } = await P.App.getInfo()
     const decision = liveDecision(manifest, { bundleId: BUNDLE_ID, nativeVersion, tried: await readJson(P, TRIED) })
     if (decision !== 'apply') return decision
+    // Switching reloads the app: never in the middle of a workout (rest timer, open sheets).
+    // The next open or return to the app after the session ends picks it up.
+    if (!canSwitch()) return 'deferred'
     const base = new URL('./' + manifest.id + '/', LIVE_LATEST_URL).href
     const dir = ROOT + '/' + manifest.id
     for (const f of manifest.files) {

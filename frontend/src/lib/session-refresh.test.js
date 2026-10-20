@@ -70,4 +70,21 @@ describe('a session started by a build that did not know per-set targets', () =>
     expect(flat(next.entries[0].sets)).toEqual(['12@20', '9@30', '7@40', '6@50', '5@60', '4@70', '12@20'])
     expect(next.entries[0].target.rows).toEqual(PYRAMID)
   })
+
+  it('leaves a pyramid laid out by a build that already knew per-set targets, edits included', () => {
+    // 1.0.1 already opened pyramids correctly but did not stamp planV; a row changed by hand
+    // during that session must survive the update.
+    const rows = PYRAMID.map(x => ({ ...x, done: false }))
+    rows[1] = { w: 32.5, r: 9, done: false }
+    const s = oldSession(rows)
+    expect(refreshLegacySession(state(s))).toBe(null)
+  })
+
+  it('counts a unilateral row with one side logged as logged', () => {
+    const side = (done) => ({ w: 20, r: 12, done: false, sides: { L: { w: 20, r: 6, done }, R: { w: 20, r: 6, done: false } } })
+    const rows = [side(true), ...Array.from({ length: 6 }, () => side(false))]
+    const next = refreshLegacySession(state(oldSession(rows)))
+    expect(next.entries[0].sets[0]).toEqual(rows[0])
+    expect(flat(next.entries[0].sets.slice(1))).toEqual(['9@30', '7@40', '6@50', '5@60', '4@70', '12@20'])
+  })
 })

@@ -59,11 +59,17 @@ export function refreshLegacySession(st) {
     seen.set(key, nth + 1)
     const cfg = (routine ? (routine.ex || []).filter(c => c.id === e.id)[nth] : null) || e.target
     if (!cfg || !plannedRows(cfg)) return e
+    const old = e.sets || []
+    // What an old build left behind is flat: every work row at row 1's numbers. Rows that already
+    // differ were laid out by a build that knew per-set targets (or edited by hand) — kept.
+    const work = old.filter(x => !isWarmupRow(x))
+    if (work.some(x => Number(x.w) !== Number(work[0].w) || Number(x.r) !== Number(work[0].r))) return e
     touched = true
     const fresh = buildEntry(st, { ...cfg, id: e.id }, routine, e.noProg === true)
-    const old = e.sets || []
-    const doneWarm = old.filter(x => x.done && isWarmupRow(x))
-    const doneWork = old.filter(x => x.done && !isWarmupRow(x))
+    // A unilateral row with only one side logged is logged.
+    const logged = x => x.done || x.sides?.L?.done || x.sides?.R?.done
+    const doneWarm = old.filter(x => logged(x) && isWarmupRow(x))
+    const doneWork = old.filter(x => logged(x) && !isWarmupRow(x))
     const freshWarm = fresh.sets.filter(isWarmupRow)
     const freshWork = fresh.sets.filter(x => !isWarmupRow(x))
     return { ...e, target: fresh.target, plan: fresh.plan,

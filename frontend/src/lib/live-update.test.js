@@ -25,6 +25,8 @@ describe('liveDecision', () => {
   it('refuses a manifest it cannot trust to lay files out safely', () => {
     expect(liveDecision(null, ctx())).toBe('invalid')
     expect(liveDecision(manifest({ id: '../x' }), ctx())).toBe('invalid')
+    expect(liveDecision(manifest({ id: '..' }), ctx())).toBe('invalid')
+    expect(liveDecision(manifest({ files: [{ p: 'index.html', h: H }, { p: '//evil.example/x.js', h: H }] }), ctx())).toBe('invalid')
     expect(liveDecision(manifest({ files: [{ p: 'assets/a.js', h: H }] }), ctx())).toBe('invalid')
     expect(liveDecision(manifest({ files: [{ p: 'index.html', h: H }, { p: '../../shared_prefs/x', h: H }] }), ctx())).toBe('invalid')
     expect(liveDecision(manifest({ files: [{ p: 'index.html', h: 'nothex' }] }), ctx())).toBe('invalid')

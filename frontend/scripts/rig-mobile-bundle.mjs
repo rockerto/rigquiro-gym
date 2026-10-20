@@ -7,7 +7,7 @@
 //
 // <id> = <native version>-<git sha>-<UTC stamp>, compiled into the bundle as VITE_BUNDLE_ID, so
 // the phone can tell which code it runs. Publishing is copying live/ to /var/www/rigquiro-app/web/
-// on the server, files first and latest.json last (see docs/RIGQUIRO_DEPLOY.md).
+// on the server: scripts/rig-publish-mobile-web.sh (CLAUDE.md, "Rigquiro: desplegar").
 import { execFileSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import { readFileSync, writeFileSync, readdirSync, statSync, mkdirSync, rmSync, cpSync } from 'node:fs'

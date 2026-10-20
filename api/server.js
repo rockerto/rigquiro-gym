@@ -714,7 +714,7 @@ function keepRows(next, cur) {
       const nth = seen.get(cfg.id) || 0;
       seen.set(cfg.id, nth + 1);
       if (cfg.rows !== undefined) continue;
-      const prev = (old.ex || []).filter(c => c && c.id === cfg.id)[nth];
+      const prev = (Array.isArray(old.ex) ? old.ex : []).filter(c => c && c.id === cfg.id)[nth];
       if (Array.isArray(prev?.rows) && prev.rows.length) cfg.rows = prev.rows;
     }
   }
