@@ -5,6 +5,7 @@ import { effectiveRoutines, effectiveRoutineIds, nextTrainingDay, streakWeeks, l
 import { fmtNum, fmtDate, todayISO, isoOf, weekKey, weekStartOf, weekDayOffset, DAYS, DAYN } from '../lib/format.js'
 import { t, dateLocale } from '../lib/i18n.js'
 import { bwSheet, goalSheet, dayOverrideSheet, calendarSheet, startFlow, starterPlanSheet, bwDeltaColor } from '../sheets.jsx'
+import { ApkUpdateBanner } from '../components/ApkUpdate.jsx'
 import LineChart from '../components/LineChart.jsx'
 import Icon from '../components/Icon.jsx'
 import { Button } from '../components/ui.jsx'
@@ -65,6 +66,8 @@ export default function Home() {
       <div><h1>{user ? t('Hi {0}', user.name) : 'Rigquiro'}</h1><div className="sub">{today.toLocaleDateString(dateLocale(), { weekday: 'long', day: 'numeric', month: 'long' })}</div></div>
       <button className="iconbtn" onClick={() => nav('/settings')} aria-label={t('Settings')}><Icon name="gear" /></button>
     </div>
+
+    <ApkUpdateBanner />
 
     <button onClick={() => nav("/facil")} style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 12, padding: "20px", margin: "2px 0 16px", borderRadius: 20, border: 0, cursor: "pointer", background: "linear-gradient(135deg, var(--acc), var(--acc-2, #0e6fa3))", color: "var(--on-acc, #fff)", fontWeight: 700, fontSize: 19, boxShadow: "0 14px 30px -14px var(--acc)" }}>
       <Icon name="bolt" size={22} /> Rutina fácil

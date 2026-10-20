@@ -10,8 +10,16 @@ import { MOBILE } from './mobile.js'
 // Rigquiro: updates come from our own server, never from openGym's releases (different app id
 // and signing key — an openGym APK cannot install over this app). Bump RIG_APP_VERSION together
 // with versionName in android/app/build.gradle and publish app/latest.json beside the APK.
-export const RIG_APP_VERSION = '1.0.1'
+export const RIG_APP_VERSION = '1.0.2'
 const LATEST_URL = 'https://gym.rigdigital.cl/app/latest.json'
+
+// The installed APK's own version. The web code can be newer than the shell around it (see
+// lib/live-update.js), so the constant compiled into it does not say which APK is installed.
+async function installedVersion() {
+  if (!MOBILE) return RIG_APP_VERSION
+  try { const { App } = await import('@capacitor/app'); return (await App.getInfo()).version || RIG_APP_VERSION }
+  catch { return RIG_APP_VERSION }
+}
 
 /**
  * Compares two semver strings (e.g. "1.2.11" vs "1.3.0").
@@ -49,7 +57,7 @@ async function fetchLatest() {
   if (!res.ok) throw new Error(`Update check ${res.status}`)
   const latest = await res.json()
   const latestVersion = String(latest.version || '').replace(/^v/, '')
-  const hasUpdate = !!latestVersion && compareSemver(latestVersion, RIG_APP_VERSION) > 0
+  const hasUpdate = !!latestVersion && compareSemver(latestVersion, await installedVersion()) > 0
   const apkUrl = latest.apk || null
   return { hasUpdate, latestVersion: latestVersion || RIG_APP_VERSION, apkUrl, hashUrl: apkUrl ? apkUrl + '.sha256' : null }
 }

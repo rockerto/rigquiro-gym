@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, forwardRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useStore, DEF, hasData } from '../store/useStore.js'
 import { workoutControls } from '../lib/workout-controls.js'
@@ -13,7 +13,9 @@ import { wakeLockSupported } from '../lib/wakelock.js'
 import { t, LANGS, INSTR_LANGS } from '../lib/i18n.js'
 import { DEMO, REPO } from '../lib/demo.js'
 import { MOBILE, isAndroid, shareExport, syncReminder } from '../lib/mobile.js'
-import { checkForUpdate, downloadAndInstall } from '../lib/update.js'
+import { checkForUpdate } from '../lib/update.js'
+import { startApkUpdate } from '../components/ApkUpdate.jsx'
+import { BUNDLE_ID } from '../lib/live-update.js'
 import { forgetCoach } from '../lib/coach-api.js'
 import { ConnectSheet } from './MobileOnboarding.jsx'
 import { starterPlanSheet, confirmSheet, importFromApp, importFromHevy, equipmentProfileSheet, menuSheet, askAddDeviceData } from '../sheets.jsx'
@@ -75,49 +77,7 @@ export default function Settings() {
     setChecking(false)
   }
 
-  const onUpdateRowClick = () => {
-    if (!updateInfo?.hasUpdate) return
-    if (updateInfo.apkUrl) {
-      // Start download & install
-      const version = updateInfo.latestVersion
-      confirmSheet({
-        title: t('Update to {0}?', version),
-        message: t('The latest version will be downloaded and the installer will open.'),
-        confirmText: t('Download & Install'),
-        onConfirm: async () => {
-          // Open a progress sheet
-          let closeProgress = null
-          let setProgress = null
-          useUI.getState().openSheet(close => {
-            closeProgress = close
-            return <DownloadProgress ref={fn => { setProgress = fn }} />
-          }, { locked: true })
-          try {
-            // The release always publishes the checksum next to the APK. Without it the file is
-            // not installed — a sideloaded binary is exactly the thing that should be verified.
-            let expectedHash = null
-            if (updateInfo.hashUrl) {
-              try {
-                const hashRes = await fetch(updateInfo.hashUrl)
-                if (hashRes.ok) expectedHash = (await hashRes.text()).split(/\s/)[0]
-              } catch (e) { /* reported below */ }
-            }
-            if (!/^[0-9a-f]{64}$/i.test(expectedHash || '')) throw new Error(t('Checksum not available — not installing'))
-            await downloadAndInstall(updateInfo.apkUrl, expectedHash, (received, total) => {
-              if (setProgress) setProgress(received, total)
-            })
-            if (closeProgress) closeProgress()
-          } catch (e) {
-            if (closeProgress) closeProgress()
-            toast(t('Update failed: {0}', e.message))
-          }
-        },
-      })
-    } else {
-      // Update available but no APK asset — open the releases page
-      window.open('https://gitlab.com/DuarteSantos8/opengym/-/releases', '_blank', 'noopener')
-    }
-  }
+  const onUpdateRowClick = () => startApkUpdate(updateInfo)
 
   const doExport = async () => {
     const json = JSON.stringify(S, null, 2)
@@ -433,6 +393,8 @@ export default function Settings() {
         are running, or whether an update actually installed. */}
     <div className="dim small" style={{ textAlign: 'center', marginTop: 4, lineHeight: 1.6 }}>
       Rigquiro · basado en openGym v{__APP_VERSION__} · {t('free & open source (AGPL v3)')}<br />
+      {/* Which web code this phone is running — what to ask for when "the fix is not there". */}
+      {MOBILE && <>Código de la app: {BUNDLE_ID}<br /></>}
       <a href="/privacidad.html" target="_blank" rel="noopener">Política de privacidad</a> · <a href="https://github.com/rockerto/rigquiro-gym" target="_blank" rel="noopener">código fuente de esta versión</a> · <a href="https://github.com/DuarteSantos8/openGym" target="_blank" rel="noopener">openGym original</a> · exercise data: hasaneyldrm/exercises-dataset (MIT)<br />
       exercise images and animations © <a href="https://gymvisual.com/" target="_blank" rel="noopener">Gym visual</a>
     </div>
@@ -482,32 +444,6 @@ function WorkoutControlsSheet() {
 function workoutControlsSheet() {
   useUI.getState().openSheet(() => <WorkoutControlsSheet />)
 }
-
-// Download progress sheet — receives a ref callback that exposes a (received, total) setter.
-// Uses forwardRef so the caller can push byte counts in without re-rendering the whole Settings tree.
-const DownloadProgress = forwardRef(function DownloadProgress(_, ref) {
-  const [pct, setPct] = useState(0)
-  const [text, setText] = useState(t('Starting download…'))
-  // Expose a setter the caller can invoke directly
-  if (ref) ref(function update(received, total) {
-    if (total > 0) {
-      const p = Math.min(100, Math.round((received / total) * 100))
-      setPct(p)
-      setText(t('{0} %', p))
-    } else {
-      setText(t('{0} MB', (received / 1_000_000).toFixed(1)))
-    }
-  })
-  return (
-    <div style={{ textAlign: 'center', padding: '8px 0' }}>
-      <h3>{t('Downloading update…')}</h3>
-      <div style={{ margin: '16px 0', height: 6, borderRadius: 3, background: 'var(--fill-3)', overflow: 'hidden' }}>
-        <div style={{ height: '100%', width: pct + '%', background: 'var(--acc)', borderRadius: 3, transition: 'width .2s' }} />
-      </div>
-      <div className="muted small">{text}</div>
-    </div>
-  )
-})
 
 function effortHelpSheet() {
   useUI.getState().openSheet(close => <>

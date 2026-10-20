@@ -1219,6 +1219,7 @@ export default {
   'Checking…': 'Comprobando…',
   'You have v{0}': 'Tienes la v{0}',
   'Update to openGym v{0}': 'Actualizar a openGym v{0}',
+  'Update to Rigquiro v{0}': 'Actualizar la app a la versión {0}',
   'You have the latest version.': 'Tienes la última versión.',
   'Could not check for updates — are you online?': 'No se pudo comprobar — ¿estás conectado?',
   'Get the Android app': 'Descargar la app de Android',
