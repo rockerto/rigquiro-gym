@@ -187,6 +187,8 @@ export default {
   'Warm-up': 'Calentamiento',
   'Add warm-up set': 'Añadir serie de calentamiento',
   'Add set': 'Añadir serie',
+  'Set each set separately': 'Definir cada serie por separado',
+  'Same target for every set': 'Mismo objetivo en todas las series',
   '+ Drop': '+ Bajada',
   '+ Burst': '+ Ráfaga',
   'Burst {0}': 'Ráfaga {0}',

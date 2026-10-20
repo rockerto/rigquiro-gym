@@ -16,7 +16,7 @@
 //   · fewer sets than prescribed                       → miss
 // So a session that fell apart can never advance the load as though it had succeeded.
 
-import { modeOf, repStep, rerampWarmups, isBw, isPerSide, entryExcluded } from './history.js'
+import { modeOf, repStep, rerampWarmups, isBw, isPerSide, entryExcluded, plannedRows } from './history.js'
 import { EXIDX, isAssisted } from './exercises.js'
 import { isWarmupRow, isSideSet, syncSideAggregate, makeSideSet } from './workout-model.js'
 import { normalizeRepRange } from './rep-range.js'
@@ -101,6 +101,8 @@ export const MAX_BW_SETS = 6
 export function policyFor(cfg, routine, mode) {
   const m = mode || modeOf(cfg || {})
   const allowed = POLICIES_FOR[m] || ['off']
+  // An exercise with its own per-set targets is trained as written; no rule rewrites a pyramid.
+  if (plannedRows(cfg)) return 'off'
   const pick = (cfg && cfg.prog) || (routine && routine.prog) || (m === 'reps' ? 'linear' : 'off')
   return allowed.includes(pick) ? pick : 'off'
 }

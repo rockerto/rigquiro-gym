@@ -375,6 +375,18 @@ export function buildSets(S, cfg, options = {}) {
 /** Beyond this a "warm-up" is its own workout; the config stepper stops here too. */
 export const MAX_PLANNED_WARMUPS = 5
 
+/**
+ * The per-set targets of a routine exercise (`cfg.rows`, [{ w, r }]) — a pyramid, say — or null
+ * when it has none, in which case every row is the flat sets × reps × weight it always was.
+ * Reps mode only; anything malformed counts as "no plan" rather than half a plan.
+ */
+export function plannedRows(cfg) {
+  const rows = cfg && cfg.rows
+  if (!Array.isArray(rows) || !rows.length || modeOf(cfg) !== 'reps') return null
+  const ok = rows.every(x => x && Number.isFinite(Number(x.w)) && Number(x.w) >= 0 && Number(x.r) > 0)
+  return ok ? rows.map(x => ({ w: Number(x.w), r: Math.round(Number(x.r)) })) : null
+}
+
 function buildWorkSets(S, cfg, options = {}) {
   const preferLast = !!options.preferLast
   const useTarget = !!options.useTarget
@@ -405,6 +417,15 @@ function buildWorkSets(S, cfg, options = {}) {
       sets.push({ sec: carried ? carried.sec : (cfg.sec || 45), w: carried ? (carried.w || 0) : (cfg.weight || 0), done: false })
     }
     return sets
+  }
+  // Per-set targets are the prescription itself: each row opens at its own weight and reps,
+  // never seeded from history or the confirmed weight (that would flatten the pyramid).
+  const planned = plannedRows(cfg)
+  if (planned) {
+    return planned.map(({ w, r }) => {
+      const row = { w, r, done: false }
+      return isPerSide(cfg) ? makeSideSet(row) : row
+    })
   }
   const conf = S.exWeights[cfg.id]
   for (let i = 0; i < n; i++) {

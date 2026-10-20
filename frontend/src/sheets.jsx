@@ -4,7 +4,7 @@ import { useUI } from './store/useUI.js'
 import { EXDB, EXIDX, BODYPARTS, isCardio, isBodyweightEq, allExercises, equipmentOf, smOf, searchExercises, exOr, isAssisted, betterWeight, beatsWeight } from './lib/exercises.js'
 import { activeProfile, exAvailable, ALL_EQUIPMENT, newProfile } from './lib/equipment.js'
 import { fmtDate, fmtNum, capWords, fmtVol, fmtDur, durPart, todayISO, isoOf, uid, exCount, routineCount, DAYN, DAYS, weekOrder, weekStartOf, weekDayOffset, MONTHS_LONG, ACCENTS } from './lib/format.js'
-import { lastEntryFor, bestWeightFor, bestWeightForEntry, buildSets, effectiveRoutineIds, workoutVolume, setsDone, setsDoneActive, setUnitsTotal, lastBW, supersetUnits, unitOf, setLabel, defaultConfig, cleanupSg, modeOf, effortOf, EFFORT, capEffort, stepEffort, isBw, isPerSide, sideReps, workSetsDone, applyIntensifierPlan, MAX_PLANNED_WARMUPS, NOTE_MAX } from './lib/history.js'
+import { lastEntryFor, bestWeightFor, bestWeightForEntry, buildSets, effectiveRoutineIds, workoutVolume, setsDone, setsDoneActive, setUnitsTotal, lastBW, supersetUnits, unitOf, setLabel, defaultConfig, cleanupSg, modeOf, effortOf, EFFORT, capEffort, stepEffort, isBw, isPerSide, sideReps, workSetsDone, applyIntensifierPlan, MAX_PLANNED_WARMUPS, NOTE_MAX, plannedRows } from './lib/history.js'
 import { usesBar, barWeightFor, defaultBarWeight, hasBarOverride, isNoBar } from './lib/bar.js'
 import { toScale, rirOf, EFFORT_PRESETS, effortColor } from './lib/effort.js'
 import { beep, vibrate } from './lib/sound.js'
@@ -1255,6 +1255,10 @@ function ExConfig({ ex, existing, onSave, onDelete, close, routine, initial }) {
       // Every set in this exercise becomes a drop-set/rest-pause (buildSets stamps the rows) —
       // decided here, in the plan, not re-decided live each time you train it.
       if (c.intensifier && c.intensifier.type) out.intensifier = c.intensifier
+      // Per-set targets: the flat fields mirror the first row and the count, so every reader
+      // that only knows sets/reps/weight still sees a sensible summary.
+      const rows = plannedRows({ ...c, mode: 'reps', rows: c.rows })
+      if (rows) Object.assign(out, { rows, sets: rows.length, reps: rows[0].r, weight: rows[0].w })
       onSave(out)
     }
   }
@@ -1289,14 +1293,31 @@ function ExConfig({ ex, existing, onSave, onDelete, close, routine, initial }) {
       </> : <>
         {/* Rest-pause always trains as exactly two rows — a warm-up at this rep count, then one
             rest-pause work set — so "Sets" has nothing left to mean and only invites a mismatch. */}
-        {c.intensifier?.type !== 'restpause' &&
+        {c.intensifier?.type !== 'restpause' && !c.rows?.length &&
           <Stepper label={t('Sets')} value={c.sets} step={1} decimal={false} onChange={v => setC(x => ({ ...x, sets: v }))} />}
-        {!double && <Stepper label={t('Reps')} value={c.reps} step={perSide ? 2 : 1} decimal={false} onChange={v => setC(x => ({ ...x, reps: v }))} />}
+        {!double && !c.rows?.length && <Stepper label={t('Reps')} value={c.reps} step={perSide ? 2 : 1} decimal={false} onChange={v => setC(x => ({ ...x, reps: v }))} />}
         {/* On bodyweight work the weight stepper is the click #32 is about, so it is not here
             until there is a belt to describe — see the added-weight row below. */}
-        {!bw && <Stepper label={t('Weight ({0})', st.unit)} value={c.weight} step={2.5} onChange={v => setC(x => ({ ...x, weight: v }))} />}
+        {!bw && !c.rows?.length && <Stepper label={t('Weight ({0})', st.unit)} value={c.weight} step={2.5} onChange={v => setC(x => ({ ...x, weight: v }))} />}
       </>}
     </div>
+    {/* Per-set targets (a pyramid: 25@20, 18@30 …): one weight/reps pair per row, trained as
+        written. Absent, the exercise keeps the flat sets × reps × weight above. */}
+    {mode === 'reps' && !cardio && c.intensifier?.type !== 'restpause' && <div style={{ marginBottom: 18 }}>
+      {c.rows?.length ? <>
+        {c.rows.map((row, i) => <div key={i} className="row cfgrow" style={{ marginBottom: 6, alignItems: 'center' }}>
+          <span className="small dim" style={{ minWidth: 22 }}>{i + 1}</span>
+          <Stepper label={t('Weight ({0})', st.unit)} value={row.w} step={2.5}
+            onChange={v => setC(x => ({ ...x, rows: x.rows.map((y, j) => j === i ? { ...y, w: v } : y) }))} />
+          <Stepper label={t('Reps')} value={row.r} step={1} decimal={false}
+            onChange={v => setC(x => ({ ...x, rows: x.rows.map((y, j) => j === i ? { ...y, r: v } : y) }))} />
+          {c.rows.length > 1 && <button className="iconbtn" aria-label={t('Remove set')}
+            onClick={() => setC(x => ({ ...x, rows: x.rows.filter((_, j) => j !== i) }))}><Icon name="trash" /></button>}
+        </div>)}
+        <Button variant="ghost" icon="plus" onClick={() => setC(x => ({ ...x, rows: [...x.rows, { ...x.rows[x.rows.length - 1] }] }))}>{t('Add set')}</Button>
+        <Button variant="ghost" className="dim" onClick={() => setC(x => { const { rows, ...rest } = x; return rest })}>{t('Same target for every set')}</Button>
+      </> : <Button variant="ghost" onClick={() => setC(x => ({ ...x, rows: Array.from({ length: Math.max(1, Math.round(x.sets) || 1) }, () => ({ w: Math.max(0, x.weight || 0), r: Math.max(1, Math.round(x.reps) || 10) })) }))}>{t('Set each set separately')}</Button>}
+    </div>}
     {c.intensifier?.type === 'restpause' && <div className="small dim" style={{ marginTop: -10, marginBottom: 18 }}>
       {t('Rest-pause always trains as one warm-up set at this rep count, then one rest-pause work set — "Sets" is not used.')}
     </div>}
