@@ -699,6 +699,27 @@ if (AUDIT_ON) {
 }
 
 /* ---------- routes ---------- */
+// Per-set targets (`rows`, a pyramid) on routine exercises are unknown to a client built before
+// they existed, and saving an exercise's settings there rewrites it without them. A push that
+// does not declare `caps: ['rows']` therefore keeps the rows the stored document already has for
+// the same routine, exercise and occurrence; everything else it sends is taken as written.
+function keepRows(next, cur) {
+  const before = new Map((cur?.routines || []).map(r => [r.id, r]));
+  for (const r of Array.isArray(next.routines) ? next.routines : []) {
+    const old = before.get(r?.id);
+    if (!old || !Array.isArray(r.ex)) continue;
+    const seen = new Map();
+    for (const cfg of r.ex) {
+      if (!cfg || typeof cfg !== 'object') continue;
+      const nth = seen.get(cfg.id) || 0;
+      seen.set(cfg.id, nth + 1);
+      if (cfg.rows !== undefined) continue;
+      const prev = (old.ex || []).filter(c => c && c.id === cfg.id)[nth];
+      if (Array.isArray(prev?.rows) && prev.rows.length) cfg.rows = prev.rows;
+    }
+  }
+}
+
 const routes = {
   'GET /api/health': async (req, res) => json(res, 200, { ok: true }),
 
@@ -954,6 +975,7 @@ const routes = {
     if (body.baseRev != null && body.baseRev !== curRev) {
       return json(res, 409, { error: 'conflict', rev: curRev, state: cur });
     }
+    if (!(Array.isArray(body.caps) && body.caps.includes('rows'))) keepRows(body.state, cur);
     delete body.state.active;              // in-progress workouts stay device-local
     body.state._rev = curRev + 1;          // server-owned; whatever the client sent is ignored
     atomicWrite(stateFile(user.id), JSON.stringify(body.state));

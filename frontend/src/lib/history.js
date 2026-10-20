@@ -152,6 +152,10 @@ export function exLine(cfg, unit) {
   const load = cfg.weight ? ' · ' + (isBw(cfg) ? '+' : '') + fmtNum(cfg.weight) + ' ' + unit : ''
   if (mode === 'cardio') return `${n} × ${cfg.min || 20} min @ ${fmtNum(cfg.speed || 8)} km/h`
   if (mode === 'time') return `${n} × ${fmtSec(cfg.sec || 45)}${load}`
+  // A pyramid is its rows, not the flat fields that only mirror the first one ("7 × 12 · 20 kg"
+  // read as seven sets at 20 kg): "12 @ 20 · 9 @ 30 · … kg".
+  const rows = plannedRows(cfg)
+  if (rows) return rows.map(x => `${x.r} @ ${fmtNum(x.w)}`).join(' · ') + ' ' + unit
   // This is the line with room for it, so the split is spelled out: "3 × 16 · 8/side".
   const split = isPerSide(cfg) ? ' · ' + t('{0}/side', fmtNum(sideReps(cfg.reps))) : ''
   return `${n} × ${cfg.reps}${load}${split}`

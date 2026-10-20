@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { buildSets, plannedRows } from './history.js'
+import { buildSets, plannedRows, exLine } from './history.js'
 import { nextPrescription } from './progression.js'
 import { buildSessionEntries } from './session-start.js'
 
@@ -39,5 +39,13 @@ describe('per-set targets in a routine', () => {
     expect(entry.plan.kind).toBe('off')
     expect(flat(entry.sets)).toEqual(['25@20', '18@30', '15@40', '12@50', '10@60', '8@70', '25@20'])
     expect(entry.sets.every(s => s.done === false)).toBe(true)
+  })
+
+  it('describes a pyramid in the plan as its rows, not as N sets of the first row', () => {
+    // The flat fields mirror row 1, so the old one-liner read "7 × 25 · 20 kg" — seven sets at
+    // the bar — on the Plan screen for a lift that climbs to 70 kg.
+    const cfg = { id: '0025', sets: 7, reps: 25, weight: 20, rows: PYRAMID }
+    expect(exLine(cfg, 'kg')).toBe('25 @ 20 · 18 @ 30 · 15 @ 40 · 12 @ 50 · 10 @ 60 · 8 @ 70 · 25 @ 20 kg')
+    expect(exLine({ id: '0025', sets: 3, reps: 10, weight: 40 }, 'kg')).toBe('3 × 10 · 40 kg')
   })
 })

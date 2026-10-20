@@ -11,6 +11,7 @@ import { loadRemote, chooseLocal, forgetRemote, connect } from '../lib/remote.js
 import { loadCoachDevice, saveCoachDevice, coachDeviceSettings } from '../lib/coach-device.js'
 
 import { WC_DEFAULT } from '../lib/workout-controls.js'
+import { refreshLegacySession } from '../lib/session-start.js'
 
 const KEY = 'gym_state_v1'
 // Where this device stands with the server: the revision it last adopted or pushed, and its own
@@ -88,9 +89,17 @@ const clone = o => JSON.parse(JSON.stringify(o))
 function loadState() {
   try {
     const raw = localStorage.getItem(KEY)
-    if (raw) return Object.assign(clone(DEF), JSON.parse(raw))
+    if (raw) return upgradeActive(Object.assign(clone(DEF), JSON.parse(raw)))
   } catch (e) { /* ignore */ }
   return clone(DEF)
+}
+
+// A session left running by an older build (no per-set targets) is replanned the first time
+// this build holds it — on load, and on any state it is handed later (file mirror, pull).
+function upgradeActive(S) {
+  const next = refreshLegacySession(S)
+  if (next) S.active = next
+  return S
 }
 
 const hasData = st => !!((st.workouts || []).length || (st.routines || []).length || (st.bodyweight || []).length)
@@ -143,6 +152,7 @@ export const useStore = create((set, get) => {
   // stamp it came with: re-stamping a read would make an unchanged copy look newer than a real
   // change made on another device, and push it over that change.
   const persist = (S, push = true, stamp = true) => {
+    upgradeActive(S)
     if (stamp) S._ts = Date.now()
     registerCustom(S.customEx)
     localStorage.setItem(KEY, JSON.stringify(S))
@@ -218,7 +228,9 @@ export const useStore = create((set, get) => {
     const S = get().S
     const sync = readSync()
     const force = forceNext
-    const body = { state: S }
+    // `caps`: this build knows per-set targets, so a routine exercise it sends without `rows`
+    // means "no rows" (see keepRows in api/server.js for what an older build gets instead).
+    const body = { state: S, caps: ['rows'] }
     if (!force && sync) body.baseRev = sync.rev
     try {
       const r = await api('/api/data', { method: 'PUT', body: JSON.stringify(body) })

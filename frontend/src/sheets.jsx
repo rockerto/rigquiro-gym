@@ -34,7 +34,7 @@ import { nextUnfinishedUnit } from './lib/supersetFlow.js'
 import { swapActiveExercise } from './lib/active-exercise-swap.js'
 import { useSheetKeyboard, useRevealActiveChip, tappable } from './lib/use-sheet-keyboard.js'
 import { isFav, toggleFav, sortFavouritesFirst } from './lib/favourites.js'
-import { buildSessionEntries } from './lib/session-start.js'
+import { buildSessionEntries, SESSION_PLAN_VERSION } from './lib/session-start.js'
 import { buildCombinedEntries, deriveSessionName } from './lib/session-merge.js'
 import { workoutsOn, backfillStart, backfillEnd, completeBackfill } from './lib/backfill.js'
 
@@ -1838,7 +1838,7 @@ export function beginWorkout(routineIds, bw) {
       // exercise came from. No top-level `excludeFromProgression` — per-entry `noProg` does it.
       routineIds: rids,
       name: routines.length ? deriveSessionName(routines.map(r => r.name)) : t('Freestyle'),
-      bw: bw || null, cur: 0, entries,
+      bw: bw || null, cur: 0, entries, planV: SESSION_PLAN_VERSION,
       // Snapshot the layout at start so the header ⋮ can change it for this session only —
       // changing the saved default (Settings → Workout view) mid-session leaves it alone.
       workoutView: st.workoutView || 'cards',
@@ -1916,7 +1916,7 @@ function beginBackfill({ iso, time, durationMin, routineId, replaceId }) {
       id: uid(), d: iso, start: backfillStart(iso, time),
       routineIds: rids,
       name: routines.length ? deriveSessionName(routines.map(r => r.name)) : t('Freestyle'),
-      bw: null, cur: 0, entries,
+      bw: null, cur: 0, entries, planV: SESSION_PLAN_VERSION,
       backfill: { durationMin, replaceId: replaceId || null },
       // Same layout snapshot as a live session (see beginWorkout).
       workoutView: st.workoutView || 'cards',
