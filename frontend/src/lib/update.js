@@ -10,7 +10,7 @@ import { MOBILE } from './mobile.js'
 // Rigquiro: updates come from our own server, never from openGym's releases (different app id
 // and signing key — an openGym APK cannot install over this app). Bump RIG_APP_VERSION together
 // with versionName in android/app/build.gradle and publish app/latest.json beside the APK.
-export const RIG_APP_VERSION = '1.0.0'
+export const RIG_APP_VERSION = '1.0.1'
 const LATEST_URL = 'https://gym.rigdigital.cl/app/latest.json'
 
 /**
