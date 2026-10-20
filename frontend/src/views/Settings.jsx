@@ -52,6 +52,7 @@ export default function Settings() {
   const [updateInfo, setUpdateInfo] = useState(null) // { hasUpdate, latestVersion, apkUrl, hashUrl } | null
   const [android, setAndroid] = useState(false)
   const [checking, setChecking] = useState(false)
+  const [nativeVersion, setNativeVersion] = useState(null)   // the installed APK, not openGym's version
 
   useEffect(() => {
     // The in-app updater installs an .apk, so it only applies to the native Android build.
@@ -60,6 +61,7 @@ export default function Settings() {
     // from even asking (and from calling gitlab.com on every Settings visit).
     if (!MOBILE) return
     isAndroid().then(ok => { setAndroid(ok); if (ok) checkForUpdate().then(setUpdateInfo).catch(() => {}) })
+    import('@capacitor/app').then(({ App }) => App.getInfo()).then(i => setNativeVersion(i.version)).catch(() => {})
   }, [])
 
   // The same check, on demand: the automatic one is silent when it finds nothing or cannot
@@ -375,11 +377,11 @@ export default function Settings() {
         newer (checksum verified, see onUpdateRowClick). On the web the app updates with its
         server, so the row points at the APK for the phone instead. iOS has no APK: nothing. */}
     {(!MOBILE || android) && <Section title={t('Updates')}
-      footer={MOBILE ? t('Releases are checked on gitlab.com. The download is verified against its checksum before the installer opens.') : t('The web app updates together with your server. The Android app installs its own updates from here.')}>
+      footer={MOBILE ? 'Las versiones nuevas se buscan en gym.rigdigital.cl. La descarga se verifica con su suma de comprobación antes de abrir el instalador.' : t('The web app updates together with your server. The Android app installs its own updates from here.')}>
       {MOBILE
         ? <Row icon="download" iconTint="var(--acc)"
             title={updateInfo?.hasUpdate ? t('Update to Rigquiro v{0}', updateInfo.latestVersion) : t('Check for updates')}
-            subtitle={checking ? t('Checking…') : t('You have v{0}', __APP_VERSION__)}
+            subtitle={checking ? t('Checking…') : t('You have v{0}', nativeVersion || __APP_VERSION__)}
             accessory="chevron"
             onClick={() => (updateInfo?.hasUpdate ? onUpdateRowClick() : checkNow())} />
         : <Row icon="download" iconTint="var(--acc)" title={t('Get the Android app')}
