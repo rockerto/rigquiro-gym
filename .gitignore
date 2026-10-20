@@ -21,3 +21,10 @@ node_modules
 junit.xml
 coverage/
 frontend/bundle-size.json
+
+# End-to-end harness (e2e/): throwaway server data, Playwright output
+e2e/.data/
+e2e/test-results/
+e2e/playwright-report/
+e2e/shots/
+frontend/live/

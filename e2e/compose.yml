@@ -1,0 +1,23 @@
+# Local copy of the production stack for end-to-end tests: the same two images production runs
+# (tags passed in), its own throwaway data dir, bound to localhost only. Never points at ./data.
+name: rigquiro-e2e
+services:
+  api:
+    image: ${E2E_API_IMAGE:-rigquiro-gym-api:local}
+    user: "10001:10001"
+    environment:
+      - PORT=3000
+      - DATA_DIR=/data
+      - RP_ID=localhost
+      - ORIGIN=http://localhost:8099
+      - RP_NAME=Rigquiro
+      - INVITE_ONLY=true
+      - ALLOW_GUEST=false
+      - GYM_SERVICE_TOKEN=e2e-local-service-token
+    volumes:
+      - ./.data:/data
+  web:
+    image: ${E2E_WEB_IMAGE:-rigquiro-gym-web:local}
+    depends_on: [api]
+    ports:
+      - "127.0.0.1:8099:80"
